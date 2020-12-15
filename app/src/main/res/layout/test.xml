@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/textView">
+    </TextView>
+        <TextView
+                android:id="@+id/stationFrom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+            android:layout_below="@id/textView"
+                android:text="@string/stationFrom"/>
+
+        <Spinner
+                android:id="@+id/spinner_from"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+            android:layout_below="@+id/stationFrom"></Spinner>
+
+        <TextView
+                android:id="@+id/stationTo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stationTo"
+            android:layout_below="@+id/spinner_from"/>
+
+        <Spinner
+                android:id="@+id/spinner_to"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+            android:layout_below="@+id/stationTo"></Spinner>
+
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="Продолжить" />
+
+
+<!--    </LinearLayout>-->
+</RelativeLayout>
