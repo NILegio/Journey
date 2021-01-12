@@ -21,21 +21,23 @@ class TransportTable : AppCompatActivity() {
                             else intent.getStringExtra("station_from")
         val stationTo = if (intent.getStringExtra("station_to") == "") "%"
                             else intent.getStringExtra("station_to")
+        val day_type = intent.getStringExtra("day_type")
 
-        val weekday = checkDay()
+        val weekday = checkDay(day_type)
 
         val dbh = DBHelper(this)
         val db = dbh.writableDatabase
         val c: Cursor = db.rawQuery(
-            "select t1.transport_id, t1.time_arrive " +
+            "select t1.transport_id, t1.time_depart " +
                     "from timetable as t1 " +
-                    "inner join route as t2 on t1.start_route_id = t2.id " +
-                    "inner join route as t3 on t1.end_route_id = t3.id " +
-                    "where t1.day not in ('$weekday') " +
+                    "inner join station as t2 on t1.station_depart_id = t2.id " +
+                    "inner join station as t3 on t1.station_arrive_id = t3.id " +
+                    "where t1.day  =  ('$weekday') " +
                     "and t2.name like '${stationFrom}' " +
                     "and t3.name like '${stationTo}'",
             null)
         val table = getTable(c)
+        Log.d(LOG_TAG, table.toString())
         val list = searchTime(table)
         val temp = mutableListOf<String>()
         for (key in list.keys){
@@ -43,23 +45,27 @@ class TransportTable : AppCompatActivity() {
         }
 
         val adapter = ArrayAdapter<String>(this, R.layout.my_list_item, temp)
-        lvMain.setAdapter(adapter)
+        lvMain.adapter = adapter
 
         c.close()
         dbh.close()
     }
 
 
-    private fun checkDay():String{
-
-        val holidays = arrayOf("0101", "0201", "0701", "0803", "0105", "0905", "0306", "0711", "2512")
-        val weekdays = arrayOf("6", "7")
-        val rawDate = SimpleDateFormat("u ddMM", Locale.getDefault())
-        val (weekday, day) = rawDate.format(Date()).split(" ")
-        if ((weekday in weekdays)||(day in holidays)) return "workday"
-        else return "holiday"
+    private fun checkDay(day_type:String?):String {
+        when (day_type){
+            "2" -> return "workday"
+            "1" -> return "holiday"
+            else -> {
+                val holidays = arrayOf("0101", "0201", "0701", "0803", "0105", "0905", "0306", "0711", "2512")
+                val weekdays = arrayOf("6", "7")
+                val rawDate = SimpleDateFormat("u ddMM", Locale.getDefault())
+                val (weekday, day) = rawDate.format(Date()).split(" ")
+                if ((weekday in weekdays)||(day in holidays)) return "holiday"
+                else return  "workday"
+            }
+        }
     }
-
 
     private fun getTable(c:Cursor?):MutableMap<String, MutableList<String>>{
         val dict = mutableMapOf<String, MutableList<String>>()
@@ -75,7 +81,7 @@ class TransportTable : AppCompatActivity() {
                             }
                             key = value
                         }
-                        if (cn == "time_arrive"){
+                        if (cn == "time_depart"){
                             dict[key]?.add(value)
                         }
                     }

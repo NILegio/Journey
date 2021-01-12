@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.RadioButton
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -20,10 +21,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener{
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        Log.d(LOG_TAG, "-------------------------------------")
         val dbh = DBHelper(this)
         val db = dbh.writableDatabase
-        val c:Cursor = db.rawQuery("select name from route", null)
+        val c:Cursor = db.rawQuery("select name from station", null)
         val array = getList(c)
         c.close()
         dbh.close()
@@ -33,7 +34,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener{
 
         fillSpinner(adapter, spinner_from, 0)
         fillSpinner(adapter, spinner_to, 1)
-
         button.setOnClickListener(this)
     }
 
@@ -61,6 +61,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener{
     override fun onClick(v: View?) {
         val sSpinnerFrom = spinner_from.selectedItem
         val sSpinnerTo = spinner_to.selectedItem
+        val checkedRadioButtonId = radioGroup.checkedRadioButtonId
+        val radio = radioGroup.findViewById<RadioButton>(checkedRadioButtonId)
         if (sSpinnerFrom == sSpinnerTo){
             Toast.makeText(this, "Пожайлуйста, выберите две разные станции", Toast.LENGTH_SHORT).show()
         }
@@ -68,6 +70,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener{
             val intent = Intent(this, TransportTable::class.java)
             intent.putExtra("station_from", sSpinnerFrom.toString())
             intent.putExtra("station_to", sSpinnerTo.toString())
+            intent.putExtra("day_type", radioGroup.indexOfChild(radio).toString())
             startActivity(intent)
         }
     }

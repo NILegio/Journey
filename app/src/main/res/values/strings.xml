@@ -3,4 +3,8 @@
     <string name="stationFrom">Станция отправления</string>
     <string name="stationTo">Станция прибытия</string>
     <string name="textView">Выберите станции из списка</string>
+    <string name="textView2">Выберите какой сегодня день:</string>
+    <string name="radio0">Обычный календарный день</string>
+    <string name="radio1">Внеочередной выходной день</string>
+    <string name="radio2">Еще более внеочередной рабочий день</string>
 </resources>

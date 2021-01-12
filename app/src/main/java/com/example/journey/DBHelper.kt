@@ -1,13 +1,16 @@
 package com.example.journey
 
+
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import java.io.IOException
+import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 
 
 const val LOG_TAG = "myLogs"
@@ -17,11 +20,13 @@ const val DB_VERSION = 1
 
 class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION){
 
+    private val assets = context.assets
     private val resources = context.resources
 
-    private val listId = listOf(R.array.stationlist, R.array.transportlist)
-    private val listNames = listOf("route", "transport")
-    private val listXmlId = listOf(R.xml.timetable_1545, R.xml.timetable_429)
+    private val file_list = listOf("429_Komm-Priluki.csv", "429_Minsk-Priluki.csv", "429_Priluki-Minsk.csv",
+        "Priluki-SW.csv", "SW-Priluki.csv")
+
+    val lists = getLists(file_list)
 
     override fun onCreate(db: SQLiteDatabase) {
 
@@ -30,13 +35,13 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
         db.execSQL("create table timetable(" +
                 "id integer primary key autoincrement," +
                 "transport_id integer NOT NULL," +
-                "start_route_id int not null," +
-                "end_route_id int not null," +
-                "time_arrive time not NULL," +
-                "timetotravel int DEFAULT 0," +
+                "station_depart_id int not null," +
+                "station_arrive_id int not null," +
+                "time_depart time not NULL," +
+                "time_arrive time DEFAULT 0," +
                 "day text not null," +
-                "FOREIGN KEY (end_route_id) REFERENCES route (id)" +
-                "FOREIGN KEY (start_route_id) REFERENCES route (id)" +
+                "FOREIGN KEY (station_arrive_id) REFERENCES station (id)" +
+                "FOREIGN KEY (station_depart_id) REFERENCES station (id)" +
                 "FOREIGN KEY (transport_id) REFERENCES transport (id))")
 
         db.execSQL("create table transport("+
@@ -44,63 +49,89 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
                 "name VARCHAR(100))"
         )
 
-        db.execSQL("create table route("+
+        db.execSQL("create table station("+
                 "id integer primary key autoincrement,"+
                 "name VARCHAR(100))"
         )
 
-        for (i in listId.indices){
-            simpleinsert(resources.getStringArray(listId[i]),db, listNames[i])
+        for ((key, value) in lists){
+            simpleinsert(value, db, key)
         }
-
-        for (id in listXmlId){
-            notsosimpleinsert(db, id)
-        }
-    }
+           val c: Cursor = db.rawQuery("select name from station", null)
+           val array = getList(c)
+           c.close()
+        justsimpleinsert(db, file_list, array)
+       }
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
         TODO("Not yet implemented")
     }
 
 
-    private fun simpleinsert(array:Array<String>, db: SQLiteDatabase, name:String){
+    private fun simpleinsert(list:List<String>, db: SQLiteDatabase, name:String){
         val cv = ContentValues()
-        for (i in array.indices){
-            cv.put("name", array[i])
+        for (i in list.indices){
+            cv.put("name", list[i])
             db.insert(name, null, cv)
         }
     }
 
 
-    private fun notsosimpleinsert(db: SQLiteDatabase, id:Int){
+    private fun justsimpleinsert(db:SQLiteDatabase, file_list:List<String>, array:List<String>){
 
-        val _xml = resources.getXml(id)
         val cv = ContentValues()
 
-        try{
-            var eventType = _xml.eventType
-            while (eventType != XmlPullParser.END_DOCUMENT){
-                if((eventType == XmlPullParser.START_TAG)&&(_xml.name.equals("record"))){
-                    val transportId = _xml.getAttributeValue(2)//2
-                    val startRouteId =_xml.getAttributeValue(3)//3
-                    val endRouteId =_xml.getAttributeValue(1)//1
-                    val timeArrive =_xml.getAttributeValue(4)//4
-                    val day = _xml.getAttributeValue(0)//0
-                    cv.put("transport_id", transportId)
-                    cv.put("start_route_id", startRouteId)
-                    cv.put("end_route_id", endRouteId)
-                    cv.put("time_arrive", timeArrive)
-                    cv.put("day", day)
-                    db.insert("timetable", null, cv)
-                }
-                eventType = _xml.next()
+        for (name in file_list){
+            val file = assets.open(name)
+            val rows: List<List<String>> = csvReader().readAll(file)
+            for (r_row in rows)
+            {
+                val row = r_row[0].split(";")
+                cv.put("transport_id", row[0])
+                cv.put("station_depart_id", array.indexOf(row[1]))
+                cv.put("time_depart", row[2])
+                cv.put("station_arrive_id", array.indexOf(row[3]))
+                cv.put("time_arrive", row[4])
+                if (row[5] == "пн вт ср чт пт"){  cv.put("day", "workday")  }
+                else { cv.put("day", "holiday")  }
+                Log.d(LOG_TAG, cv.toString())
+                db.insert("timetable", null, cv)
             }
-        }catch (ex: XmlPullParserException){
-            Log.e(LOG_TAG, "${ex.cause} error: ${ex.message}")
-        }catch (ex: IOException){
-            Log.e(LOG_TAG, "${ex.cause} error: ${ex.message}")
         }
-        finally {
-            _xml.close()
+    }
+
+    fun getLists(file_list: List<String>):Map<String, List<String>>{
+        //заставить себя попробывать сделать нормальные csv файлы с юникодом и разделителями
+        //запятыми, главное - копировать в юникод кодировке, а потом с помощью прорграмм делать
+        // разделители запятые и заголовки
+
+        val station_list = mutableListOf<String>()
+        val transport_list = mutableListOf<String>()
+
+        for (name in file_list){
+            val file = assets.open(name)
+            val rows: List<List<String>> = csvReader().readAll(file)
+            for (r_row in rows){
+                val row = r_row[0].split(";")
+                if (row[0] !in transport_list) {transport_list.add(row[0])}
+                if (row[1] !in station_list) {station_list.add(row[1])}
+                //добавить проверку на станцию прибытия, чтобы не пропустить все варианты остановок
+            }
         }
+        return mapOf("station" to station_list, "transport" to transport_list)
+    }
+    private fun getList(c: Cursor?): List<String>{
+
+        val l = mutableListOf("")
+        if (c != null){
+            if(c.moveToFirst()){
+                do{
+                    for (cn in c.columnNames) {
+                        l.add(c.getString(c.getColumnIndex(cn)))
+                    }
+                }while (c.moveToNext())
+            }
+        }
+        else Log.d(LOG_TAG, "Cursor is null")
+        return l
     }
 }
