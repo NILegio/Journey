@@ -1,3 +1,2 @@
-include ':mycats:test'
 include ':app'
 rootProject.name = "Journey"

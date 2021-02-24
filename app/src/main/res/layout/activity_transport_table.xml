@@ -13,7 +13,7 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Тут в будущем будут таблицы"/>
+        android:text="@string/warning"/>
 <!--        tools:layout_editor_absoluteX="184dp"-->
 <!--        tools:layout_editor_absoluteY="257dp"-->
     <ListView

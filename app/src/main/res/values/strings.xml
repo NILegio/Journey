@@ -7,4 +7,5 @@
     <string name="radio0">Обычный календарный день</string>
     <string name="radio1">Внеочередной выходной день</string>
     <string name="radio2">Еще более внеочередной рабочий день</string>
+    <string name="warning">Увы, подходящий маршрут найдет не был</string>
 </resources>

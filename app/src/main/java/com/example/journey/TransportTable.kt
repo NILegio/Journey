@@ -12,15 +12,16 @@ import java.util.*
 
 class TransportTable : AppCompatActivity() {
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
+
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_transport_table)
 
-        val stationFrom = if (intent.getStringExtra("station_from") =="") "%"
-                            else intent.getStringExtra("station_from")
-        val stationTo = if (intent.getStringExtra("station_to") == "") "%"
-                            else intent.getStringExtra("station_to")
+        val stationFrom = intent.getStringExtra("station_from")
+        val stationTo = intent.getStringExtra("station_to")
+        Log.d(LOG_TAG, stationFrom.toString() + " " + stationTo.toString())
         val day_type = intent.getStringExtra("day_type")
 
         val weekday = checkDay(day_type)
@@ -92,7 +93,6 @@ class TransportTable : AppCompatActivity() {
         for (key in dict.keys) dict[key]?.sort()
         return dict
     }
-
 
     private fun searchTime(table: Map<String, List<String>>):
             Map<String, List<String>>{

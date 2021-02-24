@@ -7,15 +7,12 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserException
-import java.io.IOException
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 
 
 const val LOG_TAG = "myLogs"
 const val DB_NAME = "timetable.db"
-const val DB_VERSION = 1
+const val DB_VERSION = 2
 
 
 class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION){
@@ -51,19 +48,69 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
 
         db.execSQL("create table station("+
                 "id integer primary key autoincrement,"+
-                "name VARCHAR(100))"
+                "name VARCHAR(100)," +
+                "latitude REAL DEFAULT 0," +
+                "longitude REAL DEFAULT 0)"
         )
 
         for ((key, value) in lists){
             simpleinsert(value, db, key)
         }
-           val c: Cursor = db.rawQuery("select name from station", null)
+        val c:Cursor = db.query("station", arrayOf("name"), null,
+            null,null,null, null, null)
+//           val c: Cursor = db.rawQuery("select name from station", null)
            val array = getList(c)
+        Log.d(LOG_TAG, array.toString())
            c.close()
         justsimpleinsert(db, file_list, array)
        }
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        TODO("Not yet implemented")
+
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        Log.d(LOG_TAG, " --- onUpgrade database from " + oldVersion
+                + " to " + newVersion + " version --- ")
+
+        if (oldVersion == 1 && newVersion == 2){
+
+            db.execSQL("drop table station")
+            Log.d(LOG_TAG, "--- drop station ---")
+            db.execSQL("drop table transport")
+            Log.d(LOG_TAG, "--- drop transport ---")
+            db.execSQL("drop table timetable")
+            Log.d(LOG_TAG, "--- drop table ---")
+            db.execSQL("create table timetable(" +
+                    "id integer primary key autoincrement," +
+                    "transport_id integer NOT NULL," +
+                    "station_depart_id int not null," +
+                    "station_arrive_id int not null," +
+                    "time_depart time not NULL," +
+                    "time_arrive time DEFAULT 0," +
+                    "day text not null," +
+                    "FOREIGN KEY (station_arrive_id) REFERENCES station (id)" +
+                    "FOREIGN KEY (station_depart_id) REFERENCES station (id)" +
+                    "FOREIGN KEY (transport_id) REFERENCES transport (id))")
+
+            db.execSQL("create table transport("+
+                    "id integer primary key autoincrement,"+
+                    "name VARCHAR(100))"
+            )
+
+            db.execSQL("create table station("+
+                    "id integer primary key autoincrement,"+
+                    "name VARCHAR(100)," +
+                    "latitude REAL DEFAULT 0," +
+                    "longitude REAL DEFAULT 0)"
+            )
+
+            for ((key, value) in lists){
+                simpleinsert(value, db, key)
+            }
+            val c:Cursor = db.query("station", arrayOf("name"), null,
+                null,null,null, null, null)
+            val array = getList(c)
+            Log.d(LOG_TAG, array.toString())
+            c.close()
+            justsimpleinsert(db, file_list, array)
+        }
     }
 
 
@@ -76,7 +123,7 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
     }
 
 
-    private fun justsimpleinsert(db:SQLiteDatabase, file_list:List<String>, array:List<String>){
+    private fun justsimpleinsert(db:SQLiteDatabase, file_list:List<String>, array:List<Any>){
 
         val cv = ContentValues()
 
@@ -87,9 +134,9 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
             {
                 val row = r_row[0].split(";")
                 cv.put("transport_id", row[0])
-                cv.put("station_depart_id", array.indexOf(row[1]))
+                cv.put("station_depart_id", array.indexOf(row[1])+1)
                 cv.put("time_depart", row[2])
-                cv.put("station_arrive_id", array.indexOf(row[3]))
+                cv.put("station_arrive_id", array.indexOf(row[3])+1)
                 cv.put("time_arrive", row[4])
                 if (row[5] == "пн вт ср чт пт"){  cv.put("day", "workday")  }
                 else { cv.put("day", "holiday")  }
@@ -118,20 +165,5 @@ class DBHelper(context: Context): SQLiteOpenHelper(context, DB_NAME, null, DB_VE
             }
         }
         return mapOf("station" to station_list, "transport" to transport_list)
-    }
-    private fun getList(c: Cursor?): List<String>{
-
-        val l = mutableListOf("")
-        if (c != null){
-            if(c.moveToFirst()){
-                do{
-                    for (cn in c.columnNames) {
-                        l.add(c.getString(c.getColumnIndex(cn)))
-                    }
-                }while (c.moveToNext())
-            }
-        }
-        else Log.d(LOG_TAG, "Cursor is null")
-        return l
     }
 }
